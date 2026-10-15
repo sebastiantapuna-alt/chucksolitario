@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.sp
 import com.example.chucksolitario.ui.theme.ChucksolitarioTheme
 import com.example.chucksolitario.viewmodel.JokesViewModel
 
+var i = 0
 @Composable
 fun ChuckMain(
     modifier: Modifier = Modifier,
@@ -129,7 +130,7 @@ fun ChuckMain(
                                 onClick = {
                                     categoriaSeleccionada = categoria
                                     expanded = false
-                                    jokesViewModel.cargarChiste(categoria)
+                                    //jokesViewModel.cargarChiste(categoria)
                                 }
                             )
                         }
@@ -152,7 +153,10 @@ fun ChuckMain(
                             .fillMaxWidth()
                             .padding(vertical = 8.dp)
                     )
-                } else {
+                } else if (i == 0) {
+                    Text(text="Haz clic abajo para obtener un chiste")
+                }
+                else {
                     Text(
                         text = uiState.joke?.valor ?: "Haz clic abajo para obtener un chiste",
                         fontSize = 16.sp,
@@ -165,9 +169,11 @@ fun ChuckMain(
                             .padding(vertical = 8.dp)
                     )
                 }
+                val texto = if (i == 0) { "Obtener Chiste" } else { "Siguiente chiste"}
 
                 Button(
-                    onClick = { jokesViewModel.cargarChiste(categoriaSeleccionada) },
+                    onClick = { jokesViewModel.cargarChiste(categoriaSeleccionada)
+                    i ++},
                     enabled = !uiState.cargando,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFF0284C7),
@@ -178,8 +184,9 @@ fun ChuckMain(
                         .fillMaxWidth(0.85f)
                         .height(48.dp)
                 ) {
+
                     Text(
-                        text = "Siguiente Chiste",
+                        text = texto,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold
                     )
