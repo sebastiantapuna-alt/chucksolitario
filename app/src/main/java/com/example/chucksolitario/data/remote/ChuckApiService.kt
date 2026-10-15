@@ -5,7 +5,7 @@ import retrofit2.http.Query
 
 interface ChuckApiService {
     @GET("jokes/random")
-    suspend fun getRandomJoke(
+    suspend fun obtenerJoke(
         @Query("category") category: String? = null
     ): JokeDto
 }
