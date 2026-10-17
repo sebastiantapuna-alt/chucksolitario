@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Face
@@ -248,17 +249,26 @@ fun DynamicScreenContent(
             else -> if (selectedTab == 0) "Escribe algo arriba y presiona enviar" else "Presiona Random para obtener data"
         }
 
-        Text(
-            text = textToShow,
-            color = textColor,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Medium,
-            textAlign = TextAlign.Center,
+        LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
+                .weight(1f)
+                .padding(vertical = 8.dp)
                 .background(surfaceColor, RoundedCornerShape(12.dp))
-                .padding(24.dp)
-        )
+                .padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            item {
+                Text(
+                    text = textToShow,
+                    color = textColor,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Medium,
+                    textAlign = if (selectedTab == 0 && geminiAnswer != null) TextAlign.Start else TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
 
         Button(
             onClick = buttonAction,
