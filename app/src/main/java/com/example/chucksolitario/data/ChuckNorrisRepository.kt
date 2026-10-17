@@ -1,6 +1,7 @@
 package com.example.chucksolitario.data
 
 import com.example.chucksolitario.models.Joke
+import kotlin.random.Random
 
 /**
  * El Repositorio (Repository) es el intermediario entre la API (Retrofit) y el ViewModel.

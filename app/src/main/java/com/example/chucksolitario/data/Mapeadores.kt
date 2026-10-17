@@ -14,7 +14,7 @@ fun JokeDto.toDomain(): Joke {
     return Joke(
         id = this.id,
         value = this.value,
-        url = this.url,
+        url = this.url ?: "",
         icon_url = this.iconUrl,
         // Si la API nos devuelve categories nulo (null), nosotros le pasamos una lista vacía
         // Así evitamos crashes por NullPointerException en nuestra UI.
