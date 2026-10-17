@@ -18,6 +18,8 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -69,9 +71,9 @@ fun ChuckNorrisApp(
     }
 
     val appBarTitle = when (selectedTab) {
-        0 -> "Chuck Norris"
+        0 -> "Gemini Api"
         1 -> "Stoic Quotes"
-        else -> "Pokémon API"
+        else -> "Kanye API"
     }
 
     Scaffold(
@@ -103,8 +105,8 @@ fun ChuckNorrisApp(
                 NavigationBarItem(
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
-                    icon = { Icon(Icons.Default.Star, contentDescription = "Chuck") },
-                    label = { Text("Chuck") },
+                    icon = { Icon(Icons.Default.Star, contentDescription = "Gemini") },
+                    label = { Text("Gemini") },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = Color.White,
                         selectedTextColor = primaryColor,
@@ -129,8 +131,8 @@ fun ChuckNorrisApp(
                 NavigationBarItem(
                     selected = selectedTab == 2,
                     onClick = { selectedTab = 2 },
-                    icon = { Icon(Icons.Default.Info, contentDescription = "Poke") },
-                    label = { Text("Poke") },
+                    icon = { Icon(Icons.Default.Info, contentDescription = "Kanye") },
+                    label = { Text("Kanye") },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = Color.White,
                         selectedTextColor = primaryColor,
@@ -161,29 +163,34 @@ fun DynamicScreenContent(
 ) {
     // Observamos los estados de nuestro ViewModel
     val value by viewModel.valueState.collectAsState()
-    val joke by viewModel.jokeState.collectAsState()
+    val kanyeQuote by viewModel.kanyeState.collectAsState()
+    val geminiAnswer by viewModel.geminiState.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.errorState.collectAsState()
 
     // Configuraciones específicas por tab
     val greetingName = when (selectedTab) {
-        0 -> "CHUCK NORRIS"
+        0 -> "GEMINI"
         1 -> "MARCO AURELIO"
-        else -> "PIKACHU"
+        else -> "KANYE"
     }
 
     val imageRes = when (selectedTab) {
-        0 -> R.drawable.images
-        1 -> R.drawable.stoicportait // Tu imagen estoica renombrada
-        else -> R.drawable.images // (Puedes poner otra imagen aquí luego)
+        0 -> R.drawable.gemini
+        1 -> R.drawable.stoicportait
+        else -> R.drawable.kanye
     }
+
+    // Estado local para el campo de texto de Gemini
+    var promptText by remember { mutableStateOf("") }
 
     // Al clickear el botón, ejecutamos el request específico
     val buttonAction: () -> Unit = {
         when (selectedTab) {
-            0 -> viewModel.fetchRandomJoke() // Ojo: Tendrás que ajustar en tu VM para que asigne a un StateFlow adecuado
+            // Le pasamos el texto escrito por el usuario
+            0 -> viewModel.fetchGeminiAnswer(promptText) 
             1 -> viewModel.fetchStoicQuote()
-            else -> viewModel.fetchRandomJoke() 
+            else -> viewModel.fetchKanyeQuote()
         }
     }
 
@@ -204,19 +211,41 @@ fun DynamicScreenContent(
             contentDescription = greetingName,
             contentScale = ContentScale.Crop,
             modifier = Modifier
-                .size(240.dp)
+                .size(160.dp) // Achicamos un poco la imagen para que quepa el input
                 .clip(RoundedCornerShape(16.dp))
                 .border(3.dp, primaryColor, RoundedCornerShape(16.dp))
                 .shadow(12.dp, RoundedCornerShape(16.dp))
         )
 
+        // Si estamos en la pestaña 0 (Gemini), mostramos un TextField
+        if (selectedTab == 0) {
+            TextField(
+                value = promptText,
+                onValueChange = { promptText = it },
+                placeholder = { Text("Escribe tu pregunta para Gemini...") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+                    .clip(RoundedCornerShape(12.dp)),
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = surfaceColor,
+                    unfocusedContainerColor = surfaceColor,
+                    focusedTextColor = textColor,
+                    unfocusedTextColor = textColor,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent
+                )
+            )
+        }
+
         // Qué texto mostramos en el cuadro central
         val textToShow = when {
             isLoading -> "Buscando información..."
             error != null -> error!!
+            geminiAnswer != null && selectedTab == 0 -> geminiAnswer!!.answer
             value != null && selectedTab == 1 -> "\"${value!!.qoute}\" \n\n- ${value!!.author}"
-            joke != null && selectedTab == 0 -> joke!!.value
-            else -> "Presiona Random para obtener data"
+            kanyeQuote != null && selectedTab == 2 -> kanyeQuote!!.quote
+            else -> if (selectedTab == 0) "Escribe algo arriba y presiona enviar" else "Presiona Random para obtener data"
         }
 
         Text(
@@ -238,13 +267,15 @@ fun DynamicScreenContent(
                 contentColor = Color.White
             ),
             shape = RoundedCornerShape(12.dp),
+            // Desactivamos el botón si la pestaña es Gemini y no han escrito nada
+            enabled = !isLoading && (selectedTab != 0 || promptText.isNotBlank()),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp)
                 .shadow(8.dp, RoundedCornerShape(12.dp))
         ) {
             Text(
-                text = "Random",
+                text = if (selectedTab == 0) "ENVIAR" else "RANDOM",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 2.sp

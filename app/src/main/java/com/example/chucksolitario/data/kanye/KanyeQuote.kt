@@ -1,4 +1,8 @@
 package com.example.chucksolitario.data.kanye
 
-class KanyeQuote {
-}
+import com.google.gson.annotations.SerializedName
+
+data class KanyeQuote (
+    @SerializedName("quote") val quote: String,
+
+    )
