@@ -1,32 +1,77 @@
 package com.example.chucksolitario.data
 
 import okhttp3.OkHttpClient
+import okhttp3.Protocol
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.util.concurrent.TimeUnit
 
 /** 
- * Unica instancia de Retrofit de la app (patron singleton con `object`). 
- * Nos conectará a la web.
+ * Única instancia de Retrofit de la app (patrón singleton con `object`). 
+ * Configurada con protocolos HTTP/1.1 estables para evitar errores "connection closed".
  */
 object RetrofitClient {
 
-    // La URL base debe terminar en "/" para que Retrofit pueda concatenar las rutas.
-    private const val BASE_URL = "https://api.chucknorris.io/"
+    private const val BASE_URL_CHUCK = "https://api.chucknorris.io/"
+    private const val BASE_URL_HOLIDAY = "https://date.nager.at/"
+    private const val BASE_URL_TIME = "https://timeapi.io/"
+    private const val BASE_URL_FACT = "https://uselessfacts.jsph.pl/"
 
-    // Cliente HTTP para interceptar y ver los logs (la respuesta JSON) en la pestaña de Logcat
+    // Cliente HTTP forzado a HTTP/1.1 para máxima compatibilidad con todos los servidores
     private val clienteHttp: OkHttpClient = OkHttpClient.Builder()
-        // Level.BODY nos permite ver todo el JSON que descarga en el Logcat
-        .addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY })
+        .protocols(listOf(Protocol.HTTP_1_1))
+        .addInterceptor { chain ->
+            val request = chain.request().newBuilder()
+                .header("User-Agent", "Mozilla/5.0 (Android 12; Mobile; rv:124.0) Gecko/124.0 Firefox/124.0")
+                .header("Accept", "application/json")
+                .build()
+            chain.proceed(request)
+        }
+        .addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC })
+        .retryOnConnectionFailure(true)
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
         .build()
 
-    // Inicialización "lazy" (perezosa): Solo se crea cuando se la llama por primera vez
+    // Instancia de la API de Chuck Norris
     val instance: ChuckNorrisApi by lazy {
         Retrofit.Builder()
-            .baseUrl(BASE_URL) // Le pasamos la url
-            .client(clienteHttp) // Le pasamos el interceptor
-            .addConverterFactory(GsonConverterFactory.create()) // El conversor mágico que pasa de JSON a Kotlin
+            .baseUrl(BASE_URL_CHUCK)
+            .client(clienteHttp)
+            .addConverterFactory(GsonConverterFactory.create())
             .build()
-            .create(ChuckNorrisApi::class.java) // Crea la implementación de nuestra Interfaz
+            .create(ChuckNorrisApi::class.java)
+    }
+
+    // Instancia de la API de feriados (Nager.Date)
+    val holidayInstance: HolidayApi by lazy {
+        Retrofit.Builder()
+            .baseUrl(BASE_URL_HOLIDAY)
+            .client(clienteHttp)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(HolidayApi::class.java)
+    }
+
+    // Instancia de la API de Tiempo (TimeAPI.io)
+    val timeInstance: TimeApi by lazy {
+        Retrofit.Builder()
+            .baseUrl(BASE_URL_TIME)
+            .client(clienteHttp)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(TimeApi::class.java)
+    }
+
+    // Instancia de la API de Datos Inútiles (Useless Facts API)
+    val factInstance: FactApi by lazy {
+        Retrofit.Builder()
+            .baseUrl(BASE_URL_FACT)
+            .client(clienteHttp)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(FactApi::class.java)
     }
 }

@@ -1,0 +1,11 @@
+package com.example.chucksolitario.data
+
+import com.example.chucksolitario.models.TimeInfo
+
+class TimeRepository {
+    suspend fun obtenerHoraActual(area: String, location: String): TimeInfo {
+        val timeZone = "$area/$location"
+        val timeDto = RetrofitClient.timeInstance.obtenerHora(timeZone)
+        return timeDto.toDomain()
+    }
+}
