@@ -39,14 +39,6 @@ object RetrofitClient {
         .build()
 
     // Inicialización "lazy" (perezosa): Solo se crea cuando se la llama por primera vez
-    val instance: ChuckNorrisApi by lazy {
-        Retrofit.Builder() // builder es un patron de diseño de codigo
-            .baseUrl(BASE_URL) // Le pasamos la url de Chuck Norris (BASE_URL)
-            .client(clienteHttp) // Le pasamos el interceptor
-            .addConverterFactory(GsonConverterFactory.create()) // El conversor mágico que pasa de JSON a Kotlin
-            .build() //constructor del objecto Retrofit
-            .create(ChuckNorrisApi::class.java) // Crea la implementación de nuestra Interfaz
-    }
 
     val instance2: StoicApi by lazy {
         Retrofit.Builder() // builder es un patron de diseño de codigo

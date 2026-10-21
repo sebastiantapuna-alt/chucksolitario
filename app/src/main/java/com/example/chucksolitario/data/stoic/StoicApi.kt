@@ -1,6 +1,5 @@
 package com.example.chucksolitario.data.stoic
 
-import com.example.chucksolitario.data.PokeDto;
 import retrofit2.http.GET;
 
 interface StoicApi {

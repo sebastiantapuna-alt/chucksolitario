@@ -14,8 +14,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Face
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -61,21 +65,25 @@ val textColor = Color(0xFFF5F5F5)
 fun ChuckNorrisApp(
     viewModel: ViewModel = viewModel()
 ) {
-    // Estado para saber qué tab está seleccionado (0 = Chuck, 1 = Stoic, 2 = Poke)
+    // Estado para saber qué tab está seleccionado (0 = Gemini, 1 = Stoic, 2 = Kanye)
     var selectedTab by remember { mutableStateOf(0) }
+    var showingKanyeFavorites by remember { mutableStateOf(false) }
 
     // Colores dinámicos dependiendo del tab
     val primaryColor = when (selectedTab) {
         0 -> Color(0xFFFF5722) // Naranja intenso para Chuck
         1 -> Color(0xFF6200EA) // Púrpura profundo para Stoic
-        else -> Color(0xFFE91E63) // Rosa para la 3era pantalla (Poke)
+        else -> Color(0xFFE91E63) // Rosa para la 3era pantalla (Kanye)
     }
 
     val appBarTitle = when (selectedTab) {
         0 -> "Gemini Api"
         1 -> "Stoic Quotes"
-        else -> "Kanye API"
+        else -> if (showingKanyeFavorites) "Favoritos de Kanye" else "Kanye API"
     }
+
+    val favoritosIds by viewModel.favoritosIds.collectAsState()
+    val favoritosList by viewModel.favoritosList.collectAsState()
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -86,11 +94,23 @@ fun ChuckNorrisApp(
                     Text(
                         text = appBarTitle,
                         fontWeight = FontWeight.Black,
-                        fontSize = 26.sp,
+                        fontSize = 24.sp,
                         color = primaryColor,
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = TextAlign.Center
                     )
+                },
+                actions = {
+                    // Si estamos en la pestaña de Kanye (tab 2), mostramos el botón de favoritos
+                    if (selectedTab == 2) {
+                        IconButton(onClick = { showingKanyeFavorites = !showingKanyeFavorites }) {
+                            Icon(
+                                imageVector = if (showingKanyeFavorites) Icons.Default.Info else Icons.Default.Favorite,
+                                contentDescription = "Ver favoritos de Kanye",
+                                tint = primaryColor
+                            )
+                        }
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = surfaceColor
@@ -99,59 +119,70 @@ fun ChuckNorrisApp(
             )
         },
         bottomBar = {
-            NavigationBar(
-                containerColor = surfaceColor,
-                contentColor = textColor
-            ) {
-                NavigationBarItem(
-                    selected = selectedTab == 0,
-                    onClick = { selectedTab = 0 },
-                    icon = { Icon(Icons.Default.Star, contentDescription = "Gemini") },
-                    label = { Text("Gemini") },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Color.White,
-                        selectedTextColor = primaryColor,
-                        indicatorColor = primaryColor,
-                        unselectedIconColor = Color.Gray,
-                        unselectedTextColor = Color.Gray
+            if (!showingKanyeFavorites) {
+                NavigationBar(
+                    containerColor = surfaceColor,
+                    contentColor = textColor
+                ) {
+                    NavigationBarItem(
+                        selected = selectedTab == 0,
+                        onClick = { selectedTab = 0; showingKanyeFavorites = false },
+                        icon = { Icon(Icons.Default.Star, contentDescription = "Gemini") },
+                        label = { Text("Gemini") },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = Color.White,
+                            selectedTextColor = primaryColor,
+                            indicatorColor = primaryColor,
+                            unselectedIconColor = Color.Gray,
+                            unselectedTextColor = Color.Gray
+                        )
                     )
-                )
-                NavigationBarItem(
-                    selected = selectedTab == 1,
-                    onClick = { selectedTab = 1 },
-                    icon = { Icon(Icons.Default.Face, contentDescription = "Stoic") },
-                    label = { Text("Stoic") },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Color.White,
-                        selectedTextColor = primaryColor,
-                        indicatorColor = primaryColor,
-                        unselectedIconColor = Color.Gray,
-                        unselectedTextColor = Color.Gray
+                    NavigationBarItem(
+                        selected = selectedTab == 1,
+                        onClick = { selectedTab = 1; showingKanyeFavorites = false },
+                        icon = { Icon(Icons.Default.Face, contentDescription = "Stoic") },
+                        label = { Text("Stoic") },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = Color.White,
+                            selectedTextColor = primaryColor,
+                            indicatorColor = primaryColor,
+                            unselectedIconColor = Color.Gray,
+                            unselectedTextColor = Color.Gray
+                        )
                     )
-                )
-                NavigationBarItem(
-                    selected = selectedTab == 2,
-                    onClick = { selectedTab = 2 },
-                    icon = { Icon(Icons.Default.Info, contentDescription = "Kanye") },
-                    label = { Text("Kanye") },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Color.White,
-                        selectedTextColor = primaryColor,
-                        indicatorColor = primaryColor,
-                        unselectedIconColor = Color.Gray,
-                        unselectedTextColor = Color.Gray
+                    NavigationBarItem(
+                        selected = selectedTab == 2,
+                        onClick = { selectedTab = 2 },
+                        icon = { Icon(Icons.Default.Info, contentDescription = "Kanye") },
+                        label = { Text("Kanye") },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = Color.White,
+                            selectedTextColor = primaryColor,
+                            indicatorColor = primaryColor,
+                            unselectedIconColor = Color.Gray,
+                            unselectedTextColor = Color.Gray
+                        )
                     )
-                )
+                }
             }
         }
     ) { innerPadding ->
-        // Reutilizamos el mismo layout para las tres pantallas
-        DynamicScreenContent(
-            selectedTab = selectedTab,
-            viewModel = viewModel,
-            primaryColor = primaryColor,
-            modifier = Modifier.padding(innerPadding)
-        )
+        if (selectedTab == 2 && showingKanyeFavorites) {
+            KanyeFavoritesContent(
+                favoritosList = favoritosList,
+                onQuitar = { quoteText -> viewModel.alternarFavoritoKanye(quoteText) },
+                primaryColor = primaryColor,
+                modifier = Modifier.padding(innerPadding)
+            )
+        } else {
+            DynamicScreenContent(
+                selectedTab = selectedTab,
+                viewModel = viewModel,
+                primaryColor = primaryColor,
+                favoritosIds = favoritosIds,
+                modifier = Modifier.padding(innerPadding)
+            )
+        }
     }
 }
 
@@ -160,6 +191,7 @@ fun DynamicScreenContent(
     selectedTab: Int,
     viewModel: ViewModel,
     primaryColor: Color,
+    favoritosIds: Set<Int>,
     modifier: Modifier = Modifier
 ) {
     // Observamos los estados de nuestro ViewModel
@@ -188,7 +220,6 @@ fun DynamicScreenContent(
     // Al clickear el botón, ejecutamos el request específico
     val buttonAction: () -> Unit = {
         when (selectedTab) {
-            // Le pasamos el texto escrito por el usuario
             0 -> viewModel.fetchGeminiAnswer(promptText) 
             1 -> viewModel.fetchStoicQuote()
             else -> viewModel.fetchKanyeQuote()
@@ -212,7 +243,7 @@ fun DynamicScreenContent(
             contentDescription = greetingName,
             contentScale = ContentScale.Crop,
             modifier = Modifier
-                .size(160.dp) // Achicamos un poco la imagen para que quepa el input
+                .size(160.dp)
                 .clip(RoundedCornerShape(16.dp))
                 .border(3.dp, primaryColor, RoundedCornerShape(16.dp))
                 .shadow(12.dp, RoundedCornerShape(16.dp))
@@ -237,6 +268,22 @@ fun DynamicScreenContent(
                     unfocusedIndicatorColor = Color.Transparent
                 )
             )
+        }
+
+        // Si estamos en Kanye y hay una cita, mostramos el botón de favorito (Corazón)
+        if (selectedTab == 2 && kanyeQuote != null) {
+            val esFavorito = kanyeQuote!!.quote.hashCode() in favoritosIds
+            androidx.compose.material3.IconButton(
+                onClick = { viewModel.alternarFavoritoKanye(kanyeQuote!!.quote) },
+                modifier = Modifier.padding(vertical = 4.dp)
+            ) {
+                Icon(
+                    imageVector = if (esFavorito) androidx.compose.material.icons.Icons.Default.Favorite else androidx.compose.material.icons.Icons.Default.FavoriteBorder,
+                    contentDescription = if (esFavorito) "Quitar de favoritos" else "Agregar a favoritos",
+                    tint = if (esFavorito) Color(0xFFE91E63) else Color.Gray,
+                    modifier = Modifier.size(36.dp)
+                )
+            }
         }
 
         // Qué texto mostramos en el cuadro central
@@ -277,7 +324,6 @@ fun DynamicScreenContent(
                 contentColor = Color.White
             ),
             shape = RoundedCornerShape(12.dp),
-            // Desactivamos el botón si la pestaña es Gemini y no han escrito nada
             enabled = !isLoading && (selectedTab != 0 || promptText.isNotBlank()),
             modifier = Modifier
                 .fillMaxWidth()
@@ -290,6 +336,89 @@ fun DynamicScreenContent(
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 2.sp
             )
+        }
+    }
+}
+
+@Composable
+fun KanyeFavoritesContent(
+    favoritosList: List<com.example.chucksolitario.models.KanyeQuoteResumen>,
+    onQuitar: (String) -> Unit,
+    primaryColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "Mis Citas Favoritas de Kanye",
+            color = textColor,
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+
+        if (favoritosList.isEmpty()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .weight(1f),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Aún no tienes citas de Kanye guardadas como favoritas.\nToca el ícono de corazón al generar una cita.",
+                    color = Color.Gray,
+                    textAlign = TextAlign.Center,
+                    fontSize = 16.sp
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(favoritosList.size) { index ->
+                    val favorito = favoritosList[index]
+                    androidx.compose.material3.Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = surfaceColor)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
+                        ) {
+                            Text(
+                                text = "\"${favorito.quote}\"",
+                                color = textColor,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                            androidx.compose.foundation.layout.Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp),
+                                contentAlignment = Alignment.CenterEnd
+                            ) {
+                                IconButton(onClick = { onQuitar(favorito.quote) }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Favorite,
+                                        contentDescription = "Quitar de favoritos",
+                                        tint = Color(0xFFE91E63)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

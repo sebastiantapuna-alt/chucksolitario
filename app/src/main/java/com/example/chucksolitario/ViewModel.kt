@@ -1,18 +1,23 @@
 package com.example.chucksolitario
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.chucksolitario.data.ChuckNorrisRepository
 import com.example.chucksolitario.data.ai.AiAnswer
 import com.example.chucksolitario.data.ai.AiRepository
-import com.example.chucksolitario.data.kanye.KanyeQuote
+import com.example.chucksolitario.data.kanye.KanyeQuoteDto
 import com.example.chucksolitario.data.kanye.KanyeQuoteRepository
 import com.example.chucksolitario.data.stoic.StoicRepository
 import com.example.chucksolitario.models.StoicQuote
 import com.example.chucksolitario.models.Joke
+import com.example.chucksolitario.models.KanyeQuoteResumen
+import com.example.chucksolitario.data.local.FavoritosRepository
+import com.example.chucksolitario.data.local.KanyeWestDatabase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /**
@@ -20,13 +25,42 @@ import kotlinx.coroutines.launch
  * Conecta el Repositorio (datos) con la Vista (Compose).
  * Su ventaja es que los datos no se pierden al girar la pantalla del celular.
  */
-class ViewModel : ViewModel() {
+class ViewModel(application: Application) : AndroidViewModel(application) {
 
-    // Instanciamos los repositorios de las API's
-    private val repository = ChuckNorrisRepository()
+    // Instanciamos los repositorios de las API's y de la base de datos (Room)
     private val stoicRepository = StoicRepository()
     private val kanyeRepository = KanyeQuoteRepository()
     private val geminiRepository = AiRepository()
+    private val favoritosRepository = FavoritosRepository(KanyeWestDatabase.obtener(application).favoritoDao())
+
+    // Observamos los IDs de los favoritos desde Room
+    val favoritosIds: StateFlow<Set<Int>> = favoritosRepository.observarIds()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = emptySet()
+        )
+
+    // Observamos la lista completa de favoritos desde Room
+    val favoritosList: StateFlow<List<KanyeQuoteResumen>> = favoritosRepository.observarFavoritos()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = emptyList()
+        )
+
+    // Función para alternar el estado de favorito de una cita de Kanye
+    fun alternarFavoritoKanye(quoteText: String) {
+        val id = quoteText.hashCode()
+        val esFavorito = id in favoritosIds.value
+        viewModelScope.launch {
+            if (esFavorito) {
+                favoritosRepository.quitar(id)
+            } else {
+                favoritosRepository.agregar(KanyeQuoteResumen(quote = quoteText))
+            }
+        }
+    }
 
     // _valueState es para la pantalla Estoica
     private val _valueState = MutableStateFlow<StoicQuote?>(null)
@@ -37,8 +71,8 @@ class ViewModel : ViewModel() {
     val jokeState: StateFlow<Joke?> = _jokeState.asStateFlow()
 
     // Creamos un estado exclusivo para la pantalla de Kanye West
-    private val _kanyeState = MutableStateFlow<KanyeQuote?>(null)
-    val kanyeState: StateFlow<KanyeQuote?> = _kanyeState.asStateFlow()
+    private val _kanyeState = MutableStateFlow<KanyeQuoteDto?>(null)
+    val kanyeState: StateFlow<KanyeQuoteDto?> = _kanyeState.asStateFlow()
 
     // Creamos un estado exclusivo para la pantalla de Gemini
     private val _geminiState = MutableStateFlow<AiAnswer?>(null)
@@ -95,22 +129,6 @@ class ViewModel : ViewModel() {
     /**
      * Esta función llama al Repositorio para pedir un chiste nuevo de Chuck Norris.
      */
-    fun fetchRandomJoke() {
-        viewModelScope.launch {
-            _isLoading.value = true
-            _errorState.value = null
-            
-            try {
-                val joke = repository.obtenerChisteAleatorio()
-                // Actualizamos el estado de Chuck Norris!
-                _jokeState.value = joke
-            } catch (e: Exception) {
-                _errorState.value = "Hubo un error: ${e.localizedMessage}"
-            } finally {
-                _isLoading.value = false
-            }
-        }
-    }
 
     fun fetchGeminiAnswer(prompt: String) {
         viewModelScope.launch {

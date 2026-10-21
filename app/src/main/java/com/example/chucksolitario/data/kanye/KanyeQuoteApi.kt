@@ -4,5 +4,5 @@ import retrofit2.http.GET
 
 interface KanyeQuoteApi {
     @GET ("/")
-    suspend fun getRandomKanyeQuote(): KanyeQuote
+    suspend fun getRandomKanyeQuote(): KanyeQuoteDto
 }
