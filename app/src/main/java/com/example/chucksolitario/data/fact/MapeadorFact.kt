@@ -1,5 +1,6 @@
 package com.example.chucksolitario.data.fact
 
+import com.example.chucksolitario.data.local.FactCacheEntity
 import com.example.chucksolitario.data.local.FavoritoEntity
 import com.example.chucksolitario.models.Fact
 
@@ -26,10 +27,21 @@ fun FavoritoEntity.toDomain(): Fact {
 }
 
 /**
- * Convierte nuestro modelo de dominio (Fact) a una entidad de Room (FavoritoEntity).
+ * Convierte una entidad de la caché (FactCacheEntity) a nuestro modelo de dominio (Fact).
  */
-fun Fact.toEntity(): FavoritoEntity {
-    return FavoritoEntity(
+fun FactCacheEntity.toDomain(): Fact {
+    return Fact(
+        id = id,
+        text = text,
+        source = source
+    )
+}
+
+/**
+ * Convierte nuestro modelo de dominio (Fact) a una entidad de la caché (FactCacheEntity).
+ */
+fun Fact.toCacheEntity(): FactCacheEntity {
+    return FactCacheEntity(
         id = id,
         text = text,
         source = source

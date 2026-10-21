@@ -28,10 +28,9 @@ class FactDetailViewModel(
     savedStateHandle: SavedStateHandle
 ) : AndroidViewModel(application) {
 
-    private val repository = FactRepository()
-    private val favoritosRepository = FavoritosRepository(
-        AppDatabase.obtener(application).favoritoDao()
-    )
+    private val baseDeDatos = AppDatabase.obtener(application)
+    private val repository = FactRepository(baseDeDatos.factCacheDao())
+    private val favoritosRepository = FavoritosRepository(baseDeDatos.favoritoDao())
 
     private val factId: String? = savedStateHandle.get<String>(ARG_FACT_ID)
 
@@ -57,7 +56,7 @@ class FactDetailViewModel(
         _estadoApi.update { it.copy(isLoading = true, error = null) }
         viewModelScope.launch {
             try {
-                val fact = repository.obtenerDatoAleatorio()
+                val fact = repository.cargarFactAleatorio()
                 _estadoApi.update { it.copy(fact = fact, isLoading = false) }
             } catch (e: Exception) {
                 _estadoApi.update {

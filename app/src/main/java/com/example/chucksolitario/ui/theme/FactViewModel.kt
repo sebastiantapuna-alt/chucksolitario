@@ -22,22 +22,31 @@ data class FactUiState(
     val favoritosIds: Set<String> = emptySet()
 )
 
+private data class EstadoRed(
+    val cargando: Boolean = true,
+    val error: String? = null
+)
+
 class FactViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val repository = FactRepository()
-    private val favoritosRepository = FavoritosRepository(
-        AppDatabase.obtener(application).favoritoDao()
-    )
+    private val baseDeDatos = AppDatabase.obtener(application)
+    private val repository = FactRepository(baseDeDatos.factCacheDao())
+    private val favoritosRepository = FavoritosRepository(baseDeDatos.favoritoDao())
 
-    // Estado interno que proviene de la API
-    private val _estadoApi = MutableStateFlow(FactUiState())
+    private val _estadoRed = MutableStateFlow(EstadoRed())
 
-    // Estado expuesto a la pantalla = Estado de la API + IDs favoritos emitidos por Room
+    // Combina la lista guardada en Room (1), el estado de red (2) y los IDs favoritos de Room (3)
     val uiState: StateFlow<FactUiState> = combine(
-        _estadoApi,
+        repository.observarFacts(),
+        _estadoRed,
         favoritosRepository.observarIds()
-    ) { estadoApi, ids ->
-        estadoApi.copy(favoritosIds = ids)
+    ) { facts, red, favoritosIds ->
+        FactUiState(
+            fact = facts.lastOrNull(),
+            isLoading = red.cargando,
+            error = red.error,
+            favoritosIds = favoritosIds
+        )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -45,26 +54,31 @@ class FactViewModel(application: Application) : AndroidViewModel(application) {
     )
 
     init {
-        fetchRandomFact()
+        viewModelScope.launch {
+            if (repository.hayFactsGuardados()) {
+                // Ya hay datos guardados en Room: se muestran al instante sin esperar a la API
+                _estadoRed.update { it.copy(cargando = false) }
+            } else {
+                // Primera vez (caché vacía): descargamos de la red
+                fetchRandomFact()
+            }
+        }
     }
 
     fun fetchRandomFact() {
-        _estadoApi.update { it.copy(isLoading = true, error = null) }
+        _estadoRed.update { it.copy(cargando = true, error = null) }
         viewModelScope.launch {
             try {
-                val fact = repository.obtenerDatoAleatorio()
-                _estadoApi.update { it.copy(fact = fact, isLoading = false) }
+                repository.cargarFactAleatorio()
+                _estadoRed.update { it.copy(cargando = false) }
             } catch (e: Exception) {
-                _estadoApi.update {
-                    it.copy(isLoading = false, error = "Error al obtener dato: ${e.localizedMessage}")
+                _estadoRed.update {
+                    it.copy(cargando = false, error = "Error al obtener dato: ${e.localizedMessage}")
                 }
             }
         }
     }
 
-    /**
-     * Si el dato ya es favorito, lo elimina de Room; si no lo es, lo guarda.
-     */
     fun alternarFavorito(fact: Fact) {
         val esFavorito = fact.id in uiState.value.favoritosIds
         viewModelScope.launch {
