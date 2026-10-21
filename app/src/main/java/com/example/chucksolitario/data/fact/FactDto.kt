@@ -1,10 +1,7 @@
-package com.example.chucksolitario.data
+package com.example.chucksolitario.data.fact
 
 import com.google.gson.annotations.SerializedName
 
-/**
- * DTO que mapea la respuesta JSON de Useless Facts API.
- */
 data class FactDto(
     @SerializedName("id") val id: String?,
     @SerializedName("text") val text: String?,

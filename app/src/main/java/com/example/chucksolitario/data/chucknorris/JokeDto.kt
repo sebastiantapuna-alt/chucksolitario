@@ -1,14 +1,7 @@
-package com.example.chucksolitario.data
+package com.example.chucksolitario.data.chucknorris
 
 import com.google.gson.annotations.SerializedName
 
-/**
- * DTO (Data Transfer Object)
- * Representa exactamente la estructura JSON que responde la API de Chuck Norris.
- * Usamos @SerializedName para indicar el nombre exacto de la llave en el JSON.
- * Aunque en Kotlin usemos nombres como "iconUrl" (camelCase),
- * Gson sabrá que debe buscar "icon_url" en el JSON original.
- */
 data class JokeDto(
     @SerializedName("id") val id: String,
     @SerializedName("value") val value: String,

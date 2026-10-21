@@ -1,15 +1,21 @@
 package com.example.chucksolitario.ui.theme
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -25,11 +31,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
 fun FactScreen(
-    viewModel: FactViewModel = viewModel()
+    viewModel: FactViewModel = viewModel(),
+    onVerFavoritos: () -> Unit = {},
+    onFactClick: (String) -> Unit = {}
 ) {
-    val fact by viewModel.factState.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    val error by viewModel.errorState.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
 
     Column(
         modifier = Modifier
@@ -39,35 +45,43 @@ fun FactScreen(
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
-            text = "Dato Inútil Aleatorio",
-            color = Color(0xFFFF5722),
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Bold
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Dato Inútil Aleatorio",
+                color = Color(0xFFFF5722),
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            IconButton(onClick = onVerFavoritos) {
+                Icon(
+                    imageVector = Icons.Filled.Favorite,
+                    contentDescription = "Ver favoritos",
+                    tint = Color(0xFFFF5722)
+                )
+            }
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
 
         when {
-            isLoading -> {
-                CircularProgressIndicator(color = Color(0xFFAAFF22))
+            uiState.isLoading -> {
+                CircularProgressIndicator(color = Color(0xFFFF5722))
             }
-            error != null -> {
-                Text(text = error!!, color = Color.Red, textAlign = TextAlign.Center)
+            uiState.error != null -> {
+                Text(text = uiState.error!!, color = Color.Red, textAlign = TextAlign.Center)
             }
-            fact != null -> {
-                Text(
-                    text = fact!!.text,
-                    color = Color.White,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Medium,
-                    textAlign = TextAlign.Center
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Fuente: ${fact!!.source}",
-                    color = Color.LightGray,
-                    fontSize = 12.sp
+            uiState.fact != null -> {
+                val fact = uiState.fact!!
+                FactCard(
+                    fact = fact,
+                    esFavorito = fact.id in uiState.favoritosIds,
+                    onClick = { onFactClick(fact.id) },
+                    onFavoritoClick = { viewModel.alternarFavorito(fact) }
                 )
             }
         }

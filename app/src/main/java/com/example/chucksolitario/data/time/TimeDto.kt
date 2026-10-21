@@ -1,4 +1,4 @@
-package com.example.chucksolitario.data
+package com.example.chucksolitario.data.time
 
 import com.google.gson.annotations.SerializedName
 

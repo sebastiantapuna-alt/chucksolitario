@@ -1,5 +1,8 @@
-package com.example.chucksolitario.data
+package com.example.chucksolitario.data.chucknorris
 
+import com.example.chucksolitario.data.fact.FactApi
+import com.example.chucksolitario.data.holiday.HolidayApi
+import com.example.chucksolitario.data.time.TimeApi
 import okhttp3.OkHttpClient
 import okhttp3.Protocol
 import okhttp3.logging.HttpLoggingInterceptor
@@ -9,7 +12,7 @@ import java.util.concurrent.TimeUnit
 
 /** 
  * Única instancia de Retrofit de la app (patrón singleton con `object`). 
- * Configurada con protocolos HTTP/1.1 estables para evitar errores "connection closed".
+ * Configurada con cabeceras estándar para conexiones estables a todas las APIs.
  */
 object RetrofitClient {
 
@@ -18,7 +21,7 @@ object RetrofitClient {
     private const val BASE_URL_TIME = "https://timeapi.io/"
     private const val BASE_URL_FACT = "https://uselessfacts.jsph.pl/"
 
-    // Cliente HTTP forzado a HTTP/1.1 para máxima compatibilidad con todos los servidores
+    // Cliente HTTP con User-Agent estándar
     private val clienteHttp: OkHttpClient = OkHttpClient.Builder()
         .protocols(listOf(Protocol.HTTP_1_1))
         .addInterceptor { chain ->

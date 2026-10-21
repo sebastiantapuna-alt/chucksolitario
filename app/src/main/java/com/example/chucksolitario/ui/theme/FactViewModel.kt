@@ -1,43 +1,77 @@
 package com.example.chucksolitario.ui.theme
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.chucksolitario.data.FactRepository
+import com.example.chucksolitario.data.FavoritosRepository
+import com.example.chucksolitario.data.fact.FactRepository
+import com.example.chucksolitario.data.local.AppDatabase
 import com.example.chucksolitario.models.Fact
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-class FactViewModel : ViewModel() {
+data class FactUiState(
+    val fact: Fact? = null,
+    val isLoading: Boolean = false,
+    val error: String? = null,
+    val favoritosIds: Set<String> = emptySet()
+)
+
+class FactViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = FactRepository()
+    private val favoritosRepository = FavoritosRepository(
+        AppDatabase.obtener(application).favoritoDao()
+    )
 
-    private val _factState = MutableStateFlow<Fact?>(null)
-    val factState: StateFlow<Fact?> = _factState.asStateFlow()
+    // Estado interno que proviene de la API
+    private val _estadoApi = MutableStateFlow(FactUiState())
 
-    private val _errorState = MutableStateFlow<String?>(null)
-    val errorState: StateFlow<String?> = _errorState.asStateFlow()
-
-    private val _isLoading = MutableStateFlow<Boolean>(false)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+    // Estado expuesto a la pantalla = Estado de la API + IDs favoritos emitidos por Room
+    val uiState: StateFlow<FactUiState> = combine(
+        _estadoApi,
+        favoritosRepository.observarIds()
+    ) { estadoApi, ids ->
+        estadoApi.copy(favoritosIds = ids)
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = FactUiState(isLoading = true)
+    )
 
     init {
         fetchRandomFact()
     }
 
     fun fetchRandomFact() {
+        _estadoApi.update { it.copy(isLoading = true, error = null) }
         viewModelScope.launch {
-            _isLoading.value = true
-            _errorState.value = null
-
             try {
                 val fact = repository.obtenerDatoAleatorio()
-                _factState.value = fact
+                _estadoApi.update { it.copy(fact = fact, isLoading = false) }
             } catch (e: Exception) {
-                _errorState.value = "Error al obtener dato: ${e.localizedMessage}"
-            } finally {
-                _isLoading.value = false
+                _estadoApi.update {
+                    it.copy(isLoading = false, error = "Error al obtener dato: ${e.localizedMessage}")
+                }
+            }
+        }
+    }
+
+    /**
+     * Si el dato ya es favorito, lo elimina de Room; si no lo es, lo guarda.
+     */
+    fun alternarFavorito(fact: Fact) {
+        val esFavorito = fact.id in uiState.value.favoritosIds
+        viewModelScope.launch {
+            if (esFavorito) {
+                favoritosRepository.quitar(fact.id)
+            } else {
+                favoritosRepository.agregar(fact)
             }
         }
     }

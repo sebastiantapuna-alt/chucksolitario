@@ -1,4 +1,4 @@
-package com.example.chucksolitario.data
+package com.example.chucksolitario.data.fact
 
 import retrofit2.http.GET
 import retrofit2.http.Query
